@@ -109,23 +109,22 @@
             }
         }
 
+        small{
+            font-size: 10px;
+            color: #555;
+            position: fixed;
+            bottom: 10px;
+            left: 0;
+            right: 0;
+            margin: auto;
+            width: 400px;
+        }
         
     </style>
 
     <script type="module">
         
         import {CreateMLCEngine} from "https://esm.run/@mlc-ai/web-llm";
-
-        const SELECTED_MODEL = 'gemma-2b-it-q4f32_1-MLC';
-
-        const engine = await CreateMLCEngine(
-            SELECTED_MODEL,
-            {
-                initProgressCallback: (info) => {
-                    console.log('initProgressCallback', info);
-                } 
-            }
-        );
 
         const $ = el => document.querySelector(el);
         
@@ -135,8 +134,28 @@
         const $messages = $('ul');
         const $container = $('main');
         const $button = $('button');
+        const $info = $('small');
 
-        $form.addEventListener('submit', (event) => {
+        let messages = [];
+
+        const SELECTED_MODEL = 'gemma-2b-it-q4f32_1-MLC';
+
+        const engine = await CreateMLCEngine(
+            SELECTED_MODEL,
+            {
+                initProgressCallback: (info) => {
+                    console.log('initProgressCallback', info);
+                    $info.textContent = `${info.text}`;
+
+                    if (info.progress===1){
+                        $button.removeAttribute('disabled');
+                    }
+
+                } 
+            }
+        );
+
+        $form.addEventListener('submit', async (event) => {
             event.preventDefault();
 
             const messageText = $input.value.trim();
@@ -145,12 +164,29 @@
                 $input.value='';
             }            
             addMessage(messageText, 'user');
-            $button.setAttribute('disabled', true);
+            $button.setAttribute('disabled', false);
 
+            /*
             setTimeout( () => {
                 addMessage('Pensando', 'bot');
                 $button.removeAttribute('disabled');
             }, 2000 )
+            */
+            const userMessage = {
+                role: 'user',
+                content: messageText
+            }
+
+            messages.push(userMessage);
+
+            const reply = await engine.chat.completions.create({
+                messages 
+            });
+
+            //console.log(reply.choices[0].message);
+            const botMessage=reply.choices[0].message;
+            messages.push(botMessage);
+            addMessage(botMessage.content, 'bot')
 
         })
 
@@ -197,8 +233,11 @@
     </main>
     <form>
         <input type="text" placeholder="Escribe tu mensaje aquí...">
-        <button>Enviar</button>
+        <button disabled>Enviar</button>
     </form>
+    
+    <small>&nbsp;</small>
+
     <template id="message-template">
         <li  class="message">
             <span></span>
