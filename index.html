@@ -124,7 +124,7 @@
 
     <script type="module">
         
-        import {CreateMLCEngine} from "https://esm.run/@mlc-ai/web-llm";
+        import {CreateWebWorkerMLCEngine} from "https://esm.run/@mlc-ai/web-llm";
 
         const $ = el => document.querySelector(el);
         
@@ -138,13 +138,27 @@
 
         let messages = [];
 
+        /*
+        if (window.Worker){
+            const worker = new Worker('/worker.js');
+            worker.postMessage( {name: 'hello'} );
+
+            worker.onmessage = (e) => {                
+                console.log('Main thread: Message received from worker');
+                console.log(e);
+            }
+
+        }
+        */
+
         const SELECTED_MODEL = 'gemma-2b-it-q4f32_1-MLC';
 
-        const engine = await CreateMLCEngine(
+        const engine = await CreateWebWorkerMLCEngine(
+            new Worker('/worker.js', {type: 'module'}),
             SELECTED_MODEL,
             {
                 initProgressCallback: (info) => {
-                    console.log('initProgressCallback', info);
+                    //console.log('initProgressCallback', info);
                     $info.textContent = `${info.text}`;
 
                     if (info.progress===1){
@@ -189,7 +203,7 @@
             const $botMessage = addMessage("", 'bot')
 
             for await (const chunk of chunks){
-                console.log(chunk.choices);
+                //console.log(chunk.choices);
                 const choice = chunk.choices[0];
                 const content = choice?.delta?.content ?? "";
                 reply += content;
@@ -205,6 +219,7 @@
                 content: reply
             });
             //addMessage(botMessage.content, 'bot')
+            $container.scrollTop = $container.scrollHeight;
 
         })
 
